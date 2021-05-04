@@ -1,0 +1,6 @@
+These three files contain:
+
+2M x-coordinates as 32b floats.
+2M y-coordinates as 32b floats.
+2M z-coordinates as 32b floats.
+
