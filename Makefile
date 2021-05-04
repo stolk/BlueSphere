@@ -15,4 +15,6 @@ CFLAGS=\
 bluesphere: Makefile $(SRC) pseudorand.h threadpooltask.h threadpool.h
 	$(CC) $(CFLAGS) -o bluesphere $(SRC) -lm -lpthread
 
+f32tof16: f32tof16.c
+	$(CC) $(CFLAGS) -o f32tof16 f32tof16.c -lm
 
