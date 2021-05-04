@@ -1,14 +1,18 @@
 CC=clang-11
 #CC=gcc-10
 
+#SANI=-fsanitize=address -fno-omit-frame-pointer
+
 SRC=\
 	bluesphere.c \
 	pseudorand.c \
 	threadpooltask.c \
 	threadpool.c \
-	
 
-bluesphere: $(SRC) pseudorand.h threadpooltask.h threadpool.h
-	$(CC) -Wall -g -O2 -mavx512f -o bluesphere $(SRC) -lm -lpthread
+CFLAGS=\
+	-Wall -g -O2 -mavx512f $(SANI)
+
+bluesphere: Makefile $(SRC) pseudorand.h threadpooltask.h threadpool.h
+	$(CC) $(CFLAGS) -o bluesphere $(SRC) -lm -lpthread
 
 

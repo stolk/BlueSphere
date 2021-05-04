@@ -17,26 +17,25 @@
 typedef float floatx16 __attribute__((vector_size(4*16)));
 
 
-//#define MAXHIT	(1<<21)
-#define MAXHIT	(1<<14)
-#define MAXCAN	(MAXHIT>>2)
+#define MAXHIT	(1<<21)		// Maximum number of samples we will generate.
+#define MAXCAN	(MAXHIT>>12)	// Maximum number of candidates that we will consider for each sample.
 
-float* listx;
-float* listy;
-float* listz;
+static float* listx;
+static float* listy;
+static float* listz;
 
-float* candx;
-float* candy;
-float* candz;
+static float* candx;
+static float* candy;
+static float* candz;
 
-float* candv;
+static float* candv;
 
-int sz=0;
-int numcand=0;
+static int sz=0;
+static int numcand=0;
 
 
-int   choseni[ NUMCONCURRENTTASKS ];
-float chosenv[ NUMCONCURRENTTASKS ];
+static int   choseni[ NUMCONCURRENTTASKS ];
+static float chosenv[ NUMCONCURRENTTASKS ];
 
 
 static threadpool_t* threadpool = 0;
@@ -197,8 +196,22 @@ void dump_vertices( const char* fname, int count, float* dirsx, float* dirsy, fl
 #endif
 
 
+void dump_floats( const char* fname, int count, float* v )
+{
+	FILE* f = fopen( fname, "wb" );
+	assert(f);
+
+	fwrite( v, sizeof(float), count, f );
+	fclose(f);
+}
+
+
+
 int main(int argc, char* argv[])
 {
+	fprintf(stderr,"MAXHIT %d\n", MAXHIT);
+	fprintf(stderr,"MAXCAN %d\n", MAXCAN);
+
 	// Promoted candidates, part of the list.
 	listx = (float*) aligned_alloc( 64, MAXHIT*sizeof(float) );
 	listy = (float*) aligned_alloc( 64, MAXHIT*sizeof(float) );
@@ -212,24 +225,24 @@ int main(int argc, char* argv[])
 	// Candidate max dot products with list vectors.
 	candv = (float*) aligned_alloc( 64, MAXCAN*sizeof(float) );
 
+	threadpool = threadpool_create( NUMCONCURRENTTASKS );
+
 	// Initialize a list with 1 coordinate in it.
 	mkrandom(0);
-	promote(0);
-
-	threadpool = threadpool_create( NUMCONCURRENTTASKS );
+	promote (0);
 
 	while (sz < MAXHIT)
 	{
 		//fprintf( stderr, "%d ", sz );
-		numcand = sz/4;
+		numcand = sz>>12;
 		assert( numcand < MAXCAN );
 		numcand = numcand < 256 ? 256 : numcand;
 		while ( numcand & 255 )
 			numcand++;
 
-		fprintf(stderr,"Creating %d candidates...\n", numcand);
 		for ( int i=0; i<numcand; ++i )
 			mkrandom(i);
+		fprintf(stderr,"Created %d candidates for sample %d...\n", numcand, sz);
 
 		int chosen = evaluate_all_slices();
 		promote( chosen );
@@ -237,7 +250,13 @@ int main(int argc, char* argv[])
 
 	threadpool_free( threadpool );
 
+	// Save the results
+
 	fprintf( stderr,"sz = %d\n", sz );
+
+	dump_floats( "out.x", sz, listx );
+	dump_floats( "out.y", sz, listy );
+	dump_floats( "out.z", sz, listz );
 
 	dump_vertices( "out.pts", sz, listx, listy, listz );
 
