@@ -17,8 +17,8 @@
 typedef float floatx16 __attribute__((vector_size(4*16)));
 
 
-#define MAXHIT	(1<<21)		// Maximum number of samples we will generate.
-#define MAXCAN	(MAXHIT>>12)	// Maximum number of candidates that we will consider for each sample.
+#define MAXHIT	(1<<23)		// Maximum number of samples we will generate.
+#define MAXCAN	(MAXHIT>>14)	// Maximum number of candidates that we will consider for each sample.
 
 static float* listx;
 static float* listy;
@@ -158,7 +158,9 @@ static int evaluate_all_slices( void )
 		lowi = chosenv[i] < lowv ? choseni[i] : lowi;
 		lowv = chosenv[i] < lowv ? chosenv[i] : lowv;
 	}
-	//fprintf( stderr,"Chose %d with value %f\n", lowi, lowv );
+	const int log = (sz & 255) == 0;
+	if (log)
+		fprintf( stderr,"Chose %d with value %f\n", lowi, lowv );
 	assert( lowi >= 0 && lowi < numcand );
 	return lowi;
 }
@@ -209,6 +211,8 @@ void dump_floats( const char* fname, int count, float* v )
 
 int main(int argc, char* argv[])
 {
+	(void) argc;
+	(void) argv;
 	fprintf(stderr,"MAXHIT %d\n", MAXHIT);
 	fprintf(stderr,"MAXCAN %d\n", MAXCAN);
 
@@ -225,24 +229,29 @@ int main(int argc, char* argv[])
 	// Candidate max dot products with list vectors.
 	candv = (float*) aligned_alloc( 64, MAXCAN*sizeof(float) );
 
-	threadpool = threadpool_create( NUMCONCURRENTTASKS );
-
 	// Initialize a list with 1 coordinate in it.
 	mkrandom(0);
 	promote (0);
 
+	threadpool = threadpool_create( NUMCONCURRENTTASKS );
+	fprintf( stderr, "Threadpool created for %d concurrent tasks.\n", NUMCONCURRENTTASKS );
+
 	while (sz < MAXHIT)
 	{
 		//fprintf( stderr, "%d ", sz );
-		numcand = sz>>12;
+		numcand = sz>>14;
 		assert( numcand < MAXCAN );
 		numcand = numcand < 256 ? 256 : numcand;
 		while ( numcand & 255 )
 			numcand++;
+		assert( numcand > 0 );
 
 		for ( int i=0; i<numcand; ++i )
 			mkrandom(i);
-		fprintf(stderr,"Created %d candidates for sample %d...\n", numcand, sz);
+
+		const int log = (sz & 255) == 0;
+		if (log)
+			fprintf(stderr,"Created %d candidates for sample %d...\n", numcand, sz);
 
 		int chosen = evaluate_all_slices();
 		promote( chosen );

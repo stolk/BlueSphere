@@ -1,5 +1,5 @@
-CC=clang-11
-#CC=gcc-10
+#CC?=clang
+CC=gcc
 
 #SANI=-fsanitize=address -fno-omit-frame-pointer
 
@@ -10,7 +10,7 @@ SRC=\
 	threadpool.c \
 
 CFLAGS=\
-	-Wall -g -O2 -mavx512f $(SANI)
+	-Wall -Wextra -g -O3 -mavx512f $(SANI)
 
 bluesphere: Makefile $(SRC) pseudorand.h threadpooltask.h threadpool.h
 	$(CC) $(CFLAGS) -o bluesphere $(SRC) -lm -lpthread
